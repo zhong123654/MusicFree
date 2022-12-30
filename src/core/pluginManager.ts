@@ -18,7 +18,7 @@ import DeviceInfo from 'react-native-device-info';
 import StateMapper from '@/utils/stateMapper';
 import MediaMeta from './mediaMeta';
 import {nanoid} from 'nanoid';
-import {errorLog, trace} from '../utils/log';
+import {devLog, errorLog, trace} from '../utils/log';
 import Cache from './cache';
 import {
     getInternalData,
@@ -210,6 +210,7 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
         musicItem: IMusic.IMusicItemBase,
         quality: IMusic.IQualityKey = 'standard',
         retryCount = 1,
+        notUpdateCache = false,
     ): Promise<IPlugin.IMediaSourceResult | null> {
         // 1. 本地搜索 其实直接读mediameta就好了
         const localPath =
@@ -266,7 +267,10 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
                 userAgent: headers?.['user-agent'],
             } as IPlugin.IMediaSourceResult;
 
-            if (pluginCacheControl !== CacheControl.NoStore) {
+            if (
+                pluginCacheControl !== CacheControl.NoStore &&
+                !notUpdateCache
+            ) {
                 Cache.update(musicItem, [
                     ['headers', result.headers],
                     ['userAgent', result.userAgent],
@@ -281,6 +285,7 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
                 return this.getMediaSource(musicItem, quality, --retryCount);
             }
             errorLog('获取真实源失败', e?.message);
+            devLog('error', '获取真实源失败', e, e?.message);
             return null;
         }
     }
@@ -298,7 +303,8 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
                     resetMediaItem(musicItem, undefined, true),
                 ) ?? null
             );
-        } catch (e) {
+        } catch (e: any) {
+            devLog('error', '获取音乐详情失败', e, e?.message);
             return null;
         }
     }
@@ -389,6 +395,7 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
                 lrcUrl = lrcSource?.lrc;
             } catch (e: any) {
                 trace('插件获取歌词失败', e?.message, 'error');
+                devLog('error', '插件获取歌词失败', e, e?.message);
             }
         }
         // 5. 最后一次请求
@@ -417,6 +424,15 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
                 };
             }
         }
+        // 6. 如果是本地文件
+        const isDownloaded = LocalMusicSheet.isLocalMusic(musicItem);
+        if (musicItem.platform !== localPluginPlatform && isDownloaded) {
+            const res = await localFilePlugin.instance!.getLyric!(isDownloaded);
+            if (res) {
+                return res;
+            }
+        }
+        devLog('warn', '无歌词');
 
         return null;
     }
@@ -449,6 +465,8 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
             return {...albumItem, ...result};
         } catch (e: any) {
             trace('获取专辑信息失败', e?.message);
+            devLog('error', '获取专辑信息失败', e, e?.message);
+
             return {...albumItem, musicList: []};
         }
     }
@@ -484,6 +502,8 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
             };
         } catch (e: any) {
             trace('查询作者信息失败', e?.message);
+            devLog('error', '查询作者信息失败', e, e?.message);
+
             throw e;
         }
     }
@@ -495,8 +515,10 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
                 (await this.plugin.instance?.importMusicSheet?.(urlLike)) ?? [];
             result.forEach(_ => resetMediaItem(_, this.plugin.name));
             return result;
-        } catch (e) {
+        } catch (e: any) {
             console.log(e);
+            devLog('error', '导入歌单失败', e, e?.message);
+
             return [];
         }
     }
@@ -511,8 +533,48 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
             }
             resetMediaItem(result, this.plugin.name);
             return result;
-        } catch {
+        } catch (e: any) {
+            devLog('error', '导入单曲失败', e, e?.message);
+
             return null;
+        }
+    }
+    /** 获取榜单 */
+    async getTopLists(): Promise<IMusic.IMusicTopListGroupItem[]> {
+        try {
+            const result = await this.plugin.instance?.getTopLists?.();
+            if (!result) {
+                throw new Error();
+            }
+            return result;
+        } catch (e: any) {
+            devLog('error', '获取榜单失败', e, e?.message);
+            return [];
+        }
+    }
+    /** 获取榜单详情 */
+    async getTopListDetail(
+        topListItem: IMusic.IMusicTopListItem,
+    ): Promise<ICommon.WithMusicList<IMusic.IMusicTopListItem>> {
+        try {
+            const result = await this.plugin.instance?.getTopListDetail?.(
+                topListItem,
+            );
+            if (!result) {
+                throw new Error();
+            }
+            if (result.musicList) {
+                result.musicList.forEach(_ =>
+                    resetMediaItem(_, this.plugin.name),
+                );
+            }
+            return result;
+        } catch (e: any) {
+            devLog('error', '获取榜单详情失败', e, e?.message);
+            return {
+                ...topListItem,
+                musicList: [],
+            };
         }
     }
 }
@@ -545,13 +607,32 @@ const localFilePlugin = new Plugin(function () {
                 musicBase,
                 InternalDataType.LOCALPATH,
             );
+            let rawLrc: string | null = null;
             if (localPath) {
-                const rawLrc = await Mp3Util.getLyric(localPath);
-                return {
-                    rawLrc,
-                };
+                // 读取内嵌歌词
+                try {
+                    rawLrc = await Mp3Util.getLyric(localPath);
+                } catch (e) {
+                    console.log('e', e);
+                }
+                if (!rawLrc) {
+                    // 读取配置歌词
+                    const lastDot = localPath.lastIndexOf('.');
+                    const lrcPath = localPath.slice(0, lastDot) + '.lrc';
+
+                    try {
+                        if (await exists(lrcPath)) {
+                            rawLrc = await readFile(lrcPath, 'utf8');
+                        }
+                    } catch {}
+                }
             }
-            return null;
+
+            return rawLrc
+                ? {
+                      rawLrc,
+                  }
+                : null;
         },
     };
 }, '');
@@ -665,6 +746,7 @@ async function installPluginFromUrl(url: string) {
             throw new Error('插件无法解析!');
         }
     } catch (e: any) {
+        devLog('error', 'URL安装插件失败', e, e?.message);
         errorLog('URL安装插件失败', e);
         throw new Error(e?.message ?? '');
     }

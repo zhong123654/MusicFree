@@ -13,6 +13,7 @@ import SearchPage from '../pages/searchPage';
 import Setting from '../pages/setting';
 import SheetDetail from '../pages/sheetDetail';
 import {LogBox} from 'react-native';
+import TopList from '@/pages/topList';
 
 LogBox.ignoreLogs([
     'Non-serializable values were found in the navigation state',
@@ -32,6 +33,10 @@ export const ROUTE_PATH = {
     ALBUM_DETAIL: 'album-detail',
     /** 歌手页 */
     ARTIST_DETAIL: 'artist-detail',
+    /** 榜单页 */
+    TOP_LIST: 'top-list',
+    /** 榜单详情页 */
+    TOP_LIST_DETAIL: 'top-list-detail',
     /** 设置页 */
     SETTING: 'setting',
     /** 本地音乐 */
@@ -62,6 +67,10 @@ export const routes: Array<IRoutes> = [
     {
         path: ROUTE_PATH.MUSIC_DETAIL,
         component: MusicDetail,
+    },
+    {
+        path: ROUTE_PATH.TOP_LIST,
+        component: TopList,
     },
     {
         path: ROUTE_PATH.SEARCH_PAGE,
@@ -145,6 +154,10 @@ interface RouterParams extends RouterParamsBase {
             }[],
         ) => Promise<boolean>; // true会自动关闭，false会停在当前页面
         matchExtension?: (path: string) => boolean;
+    };
+    'top-list-detail': {
+        pluginHash: string;
+        topList: IMusic.IMusicTopListItem;
     };
 }
 

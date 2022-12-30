@@ -97,12 +97,18 @@ export default function BasicSetting() {
 
     const basicOptions = [
         {
-            title: '播放与下载',
+            title: '播放',
             data: [
                 createSwitch(
                     '允许与其他应用同时播放',
                     'setting.basic.notInterrupt',
                     basicSetting?.notInterrupt ?? false,
+                ),
+                createRadio(
+                    '播放被暂时打断时',
+                    'setting.basic.tempRemoteDuck',
+                    ['暂停', '降低音量'],
+                    basicSetting?.tempRemoteDuck ?? '暂停',
                 ),
                 createSwitch(
                     '播放失败时自动暂停',
@@ -110,10 +116,10 @@ export default function BasicSetting() {
                     basicSetting?.autoStopWhenError ?? false,
                 ),
                 createRadio(
-                    '最大同时下载数目',
-                    'setting.basic.maxDownload',
-                    [1, 3, 5, 7],
-                    basicSetting?.maxDownload ?? 3,
+                    '点击搜索结果内单曲时',
+                    'setting.basic.clickMusicInSearch',
+                    ['播放歌曲', '播放歌曲并替换播放列表'],
+                    basicSetting?.clickMusicInSearch ?? '播放歌曲',
                 ),
                 createRadio(
                     '点击专辑内单曲时',
@@ -121,6 +127,28 @@ export default function BasicSetting() {
                     ['播放单曲', '播放专辑'],
                     basicSetting?.clickMusicInAlbum ?? '播放专辑',
                 ),
+                createRadio(
+                    '默认播放音质',
+                    'setting.basic.defaultPlayQuality',
+                    qualityKeys,
+                    basicSetting?.defaultPlayQuality ?? 'standard',
+                    qualityText,
+                ),
+                createRadio(
+                    '默认播放音质缺失时',
+                    'setting.basic.playQualityOrder',
+                    ['asc', 'desc'],
+                    basicSetting?.playQualityOrder ?? 'asc',
+                    {
+                        asc: '播放更高音质',
+                        desc: '播放更低音质',
+                    },
+                ),
+            ],
+        },
+        {
+            title: '下载',
+            data: [
                 {
                     title: '下载路径',
                     right: () => (
@@ -155,21 +183,10 @@ export default function BasicSetting() {
                     },
                 },
                 createRadio(
-                    '默认播放音质',
-                    'setting.basic.defaultPlayQuality',
-                    qualityKeys,
-                    basicSetting?.defaultPlayQuality ?? 'standard',
-                    qualityText,
-                ),
-                createRadio(
-                    '默认播放音质缺失时',
-                    'setting.basic.playQualityOrder',
-                    ['asc', 'desc'],
-                    basicSetting?.playQualityOrder ?? 'asc',
-                    {
-                        asc: '播放更高音质',
-                        desc: '播放更低音质',
-                    },
+                    '最大同时下载数目',
+                    'setting.basic.maxDownload',
+                    [1, 3, 5, 7],
+                    basicSetting?.maxDownload ?? 3,
                 ),
                 createRadio(
                     '默认下载音质',
@@ -300,7 +317,7 @@ export default function BasicSetting() {
             ],
         },
         {
-            title: '错误日志',
+            title: '开发选项',
             data: [
                 createSwitch(
                     '记录错误日志',
@@ -311,6 +328,11 @@ export default function BasicSetting() {
                     '记录详细日志',
                     'setting.basic.debug.traceLog',
                     basicSetting?.debug?.traceLog ?? false,
+                ),
+                createSwitch(
+                    '调试面板',
+                    'setting.basic.debug.devLog',
+                    basicSetting?.debug?.devLog ?? false,
                 ),
             ],
         },

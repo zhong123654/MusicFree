@@ -336,7 +336,11 @@ const getFakeNextTrack = () => {
     }
 };
 
-/** 播放音乐 */
+/** 播放音乐
+ * musicItem有值：播放音乐
+ * musicItem为空，且forcePlay为false或空：继续播放
+ * musicItem为空，且forcePlay为true：强制从头开始播放
+ */
 const play = async (musicItem?: IMusic.IMusicItem, forcePlay?: boolean) => {
     try {
         trace('播放', musicItem);
@@ -344,7 +348,9 @@ const play = async (musicItem?: IMusic.IMusicItem, forcePlay?: boolean) => {
         if (
             Network.isCellular() &&
             !Config.get('setting.basic.useCelluarNetworkPlay') &&
-            !LocalMusicSheet.isLocalMusic(musicItem ?? null)
+            !LocalMusicSheet.isLocalMusic(
+                musicItem ?? musicQueue[currentIndex] ?? null,
+            )
         ) {
             Toast.warn('当前设置移动网络不可播放，可在侧边栏基本设置中打开');
             await TrackPlayer.reset();
@@ -421,7 +427,8 @@ const play = async (musicItem?: IMusic.IMusicItem, forcePlay?: boolean) => {
                 return;
             }
             musicQueue = produce(musicQueue, draft => {
-                draft[currentIndex] = track;
+                draft[currentIndex] = {...track};
+                draft[currentIndex].url = _musicItem.url; // todo 这里写的不好
             });
             await replaceTrack(track as Track);
             currentMusicStateMapper.notify();
@@ -437,6 +444,7 @@ const play = async (musicItem?: IMusic.IMusicItem, forcePlay?: boolean) => {
                         track as IMusic.IMusicItem,
                         info,
                     ) as IMusic.IMusicItem;
+                    draft[currentIndex].url = _musicItem.url; // todo 这里写的不好
                 });
                 currentMusicStateMapper.notify();
             }
@@ -557,8 +565,10 @@ const changeQuality = async (newQuality: IMusic.IQualityKey) => {
             throw new Error();
         }
         if (isSameMediaItem(musicItem, musicQueue[currentIndex])) {
+            const playingState = await TrackPlayer.getState();
             await replaceTrack(
                 mergeProps(musicItem, newSource) as unknown as Track,
+                !musicIsPaused(playingState),
             );
             await TrackPlayer.seekTo(position);
             currentQuality = newQuality;

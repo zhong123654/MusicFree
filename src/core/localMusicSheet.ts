@@ -1,5 +1,5 @@
 import {internalSerializeKey, StorageKeys} from '@/constants/commonConst';
-import mp3Util from '@/native/mp3Util';
+import mp3Util, {IBasicMeta} from '@/native/mp3Util';
 import {
     getInternalData,
     InternalDataType,
@@ -54,6 +54,24 @@ export async function addMusic(
     localSheetStateMapper.notify();
 }
 
+function addMusicDraft(musicItem: IMusic.IMusicItem | IMusic.IMusicItem[]) {
+    if (!Array.isArray(musicItem)) {
+        musicItem = [musicItem];
+    }
+    let newSheet = [...localSheet];
+    musicItem.forEach(mi => {
+        if (localSheet.findIndex(_ => isSameMediaItem(mi, _)) === -1) {
+            newSheet.push(mi);
+        }
+    });
+    localSheet = newSheet;
+    localSheetStateMapper.notify();
+}
+
+async function saveLocalSheet() {
+    await setStorage(StorageKeys.LocalMusicSheet, localSheet);
+}
+
 export async function removeMusic(
     musicItem: IMusic.IMusicItem,
     deleteOriginalFile = false,
@@ -61,9 +79,13 @@ export async function removeMusic(
     const idx = localSheet.findIndex(_ => isSameMediaItem(_, musicItem));
     let newSheet = [...localSheet];
     if (idx !== -1) {
+        const localMusicItem = localSheet[idx];
         newSheet.splice(idx, 1);
-        if (deleteOriginalFile && musicItem[internalSerializeKey]?.localPath) {
-            await FileSystem.unlink(musicItem[internalSerializeKey].localPath);
+        const localPath =
+            musicItem[internalSerializeKey]?.localPath ??
+            localMusicItem[internalSerializeKey]?.localPath;
+        if (deleteOriginalFile && localPath) {
+            await FileSystem.unlink(localPath);
         }
     }
     localSheet = newSheet;
@@ -94,7 +116,8 @@ function localMediaFilter(_: FileStat) {
         _.filename.endsWith('.ogg') ||
         _.filename.endsWith('.acc') ||
         _.filename.endsWith('.aac') ||
-        _.filename.endsWith('.ape')
+        _.filename.endsWith('.ape') ||
+        _.filename.endsWith('.m4s')
     );
 }
 
@@ -133,13 +156,25 @@ function cancelImportLocal() {
 }
 
 // 导入本地音乐
+const groupNum = 200;
 async function importLocal(_folderPaths: string[]) {
     const folderPaths = [..._folderPaths];
     const {musicList, token} = await getMusicStats(folderPaths);
     if (token !== importToken) {
         throw new Error('Import Broken');
     }
-    const metas = await mp3Util.getMediaMeta(musicList.map(_ => _.path));
+    // 分组请求，不然序列化可能出问题
+    let metas: IBasicMeta[] = [];
+    const groups = Math.ceil(musicList.length / groupNum);
+    for (let i = 0; i < groups; ++i) {
+        metas = metas.concat(
+            await mp3Util.getMediaMeta(
+                musicList
+                    .slice(i * groupNum, (i + 1) * groupNum)
+                    .map(_ => _.path),
+            ),
+        );
+    }
     if (token !== importToken) {
         throw new Error('Import Broken');
     }
@@ -212,6 +247,8 @@ const LocalMusicSheet = {
     setup,
     addMusic,
     removeMusic,
+    addMusicDraft,
+    saveLocalSheet,
     importLocal,
     cancelImportLocal,
     isLocalMusic,
