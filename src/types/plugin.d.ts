@@ -33,6 +33,12 @@ declare namespace IPlugin {
         name: string;
     }
 
+    interface IAlbumInfoResult {
+        isEnd?: boolean;
+        albumItem?: IAlbum.IAlbumItemBase;
+        musicList?: IMusic.IMusicItem[];
+    }
+
     interface IPluginDefine {
         /** 来源名 */
         platform: string;
@@ -50,6 +56,8 @@ declare namespace IPlugin {
         cacheControl?: 'cache' | 'no-cache' | 'no-store';
         /** 用户自定义输入 */
         userEnv?: IUserEnv[];
+        /** 提示文本 */
+        hints?: Record<string, string[]>;
         /** 搜索 */
         search?: ISearchFunc;
         /** 获取根据音乐信息获取url */
@@ -65,10 +73,11 @@ declare namespace IPlugin {
         getLyric?: (
             musicItem: IMusic.IMusicItemBase,
         ) => Promise<ILyric.ILyricSource | null>;
-        /** 获取专辑信息，里面的歌曲不要分页 */
+        /** 获取专辑信息，里面的歌曲分页 */
         getAlbumInfo?: (
             albumItem: IAlbum.IAlbumItemBase,
-        ) => Promise<IAlbum.IAlbumItem | null>;
+            page: number,
+        ) => Promise<IAlbumInfoResult | null>;
         /** 获取作品，有分页 */
         getArtistWorks?: IGetArtistWorksFunc;
         /** 导入歌单 */
@@ -82,6 +91,7 @@ declare namespace IPlugin {
         ) => Promise<IMusic.IMusicItem | null>;
         /** 获取榜单 */
         getTopLists?: () => Promise<IMusic.IMusicTopListGroupItem[]>;
+        // todo:分页
         /** 获取榜单详情 */
         getTopListDetail?: (
             topListItem: IMusic.IMusicTopListItem,

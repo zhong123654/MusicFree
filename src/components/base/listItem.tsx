@@ -117,6 +117,7 @@ export default function ListItem(props: IListItemProps) {
         itemPaddingLeft,
         itemPaddingRight,
     } = props;
+
     return (
         <List.Item
             onLongPress={onLongPress}
@@ -179,7 +180,7 @@ const style = StyleSheet.create({
         justifyContent: 'space-between',
     },
     textWidth: {
-        maxWidth: rpx(460),
+        maxWidth: rpx(450),
     },
     artworkWrapper: {
         width: rpx(76),

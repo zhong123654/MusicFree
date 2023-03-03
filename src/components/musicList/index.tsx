@@ -1,11 +1,13 @@
 import React from 'react';
-import {FlatListProps, StyleSheet} from 'react-native';
+import {FlatListProps} from 'react-native';
 import rpx from '@/utils/rpx';
 import MusicQueue from '@/core/musicQueue';
-import {FlatList} from 'react-native-gesture-handler';
 
 import MusicItem from '../mediaItem/musicItem';
 import Empty from '../base/empty';
+import {FlashList} from '@shopify/flash-list';
+import ListLoading from '../base/listLoading';
+import ListReachEnd from '../base/listReachEnd';
 
 interface IMusicListProps {
     /** 顶部 */
@@ -21,25 +23,39 @@ interface IMusicListProps {
         musicItem: IMusic.IMusicItem,
         musicList?: IMusic.IMusicItem[],
     ) => void;
+    loadMore?: 'loading' | 'done' | 'none';
+    onEndReached?: () => void;
 }
 const ITEM_HEIGHT = rpx(120);
+
+/** 音乐列表 */
 export default function MusicList(props: IMusicListProps) {
-    const {Header, musicList, musicSheet, showIndex, onItemPress} = props;
+    const {
+        Header,
+        musicList,
+        musicSheet,
+        showIndex,
+        onItemPress,
+        onEndReached,
+        loadMore = 'none',
+    } = props;
 
     return (
-        <FlatList
-            style={style.wrapper}
+        <FlashList
             ListHeaderComponent={Header}
             ListEmptyComponent={Empty}
+            ListFooterComponent={
+                loadMore === 'done'
+                    ? ListReachEnd
+                    : loadMore === 'loading'
+                    ? ListLoading
+                    : null
+            }
             data={musicList ?? []}
             keyExtractor={musicItem =>
                 `ml-${musicItem.id}${musicItem.platform}`
             }
-            getItemLayout={(_, index) => ({
-                length: ITEM_HEIGHT,
-                offset: ITEM_HEIGHT * index,
-                index,
-            })}
+            estimatedItemSize={ITEM_HEIGHT}
             renderItem={({index, item: musicItem}) => {
                 return (
                     <MusicItem
@@ -59,12 +75,12 @@ export default function MusicList(props: IMusicListProps) {
                     />
                 );
             }}
+            onEndReached={() => {
+                if (loadMore !== 'loading') {
+                    onEndReached?.();
+                }
+            }}
+            onEndReachedThreshold={0.1}
         />
     );
 }
-
-const style = StyleSheet.create({
-    wrapper: {
-        width: rpx(750),
-    },
-});

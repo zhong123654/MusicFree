@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {Pressable, StyleSheet, View} from 'react-native';
 import rpx from '@/utils/rpx';
 import LinearGradient from 'react-native-linear-gradient';
@@ -15,13 +15,22 @@ import {ROUTE_PATH, useNavigate} from '@/entry/router';
 
 interface IHeaderProps {
     topListDetail: IMusic.IMusicTopListItem | null;
-
     musicList: IMusic.IMusicItem[] | null;
 }
 export default function Header(props: IHeaderProps) {
     const {topListDetail, musicList} = props;
     const {showPanel} = usePanel();
     const {colors} = useTheme();
+
+    const [maxLines, setMaxLines] = useState<number | undefined>(6);
+
+    const toggleShowMore = () => {
+        if (maxLines) {
+            setMaxLines(undefined);
+        } else {
+            setMaxLines(6);
+        }
+    };
 
     const navigate = useNavigate();
 
@@ -36,22 +45,36 @@ export default function Header(props: IHeaderProps) {
                 <View style={style.content}>
                     <FastImage
                         style={style.coverImg}
-                        uri={topListDetail?.coverImg}
+                        uri={topListDetail?.artwork ?? topListDetail?.coverImg}
                         emptySrc={ImgAsset.albumDefault}
                     />
                     <View style={style.details}>
                         <ThemeText>{topListDetail?.title}</ThemeText>
                         <ThemeText fontColor="secondary" fontSize="description">
-                            共{musicList ? musicList.length ?? 0 : '-'}首{' '}
+                            共
+                            {topListDetail?.worksNum ??
+                                (musicList ? musicList.length ?? 0 : '-')}
+                            首{' '}
                         </ThemeText>
                     </View>
                 </View>
                 <Divider style={style.divider} />
-                <View style={style.albumDesc}>
-                    <ThemeText fontColor="secondary" fontSize="description">
-                        {topListDetail?.description ?? ''}
-                    </ThemeText>
-                </View>
+                {topListDetail?.description ? (
+                    <Pressable onPress={toggleShowMore}>
+                        <View
+                            style={style.albumDesc}
+                            onLayout={evt => {
+                                console.log(evt.nativeEvent.layout);
+                            }}>
+                            <ThemeText
+                                fontColor="secondary"
+                                fontSize="description"
+                                numberOfLines={maxLines}>
+                                {topListDetail.description}
+                            </ThemeText>
+                        </View>
+                    </Pressable>
+                ) : null}
             </LinearGradient>
             <View
                 style={[

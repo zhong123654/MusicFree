@@ -64,9 +64,9 @@ async function _bootstrap() {
         }
     }
     await TrackPlayer.updateOptions({
-        icon: ImgAsset.logo,
-        progressUpdateEventInterval: 1,
+        icon: ImgAsset.logoTransparent,
         alwaysPauseOnInterruption: true,
+        progressUpdateEventInterval: 1,
         capabilities: [
             Capability.Play,
             Capability.Pause,
@@ -98,6 +98,9 @@ async function _bootstrap() {
 
     StatusBar.setBackgroundColor('transparent');
     StatusBar.setTranslucent(true);
+    // Linking.addEventListener('url', (data) => {
+    //     console.log(data);
+    // })
 
     ErrorUtils.setGlobalHandler(error => {
         errorLog('未捕获的错误', error);

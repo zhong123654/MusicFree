@@ -1,6 +1,6 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import rpx from '@/utils/rpx';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
+import {LayoutRectangle, StyleSheet, Text, View} from 'react-native';
+import rpx, {vh} from '@/utils/rpx';
 import MusicQueue from '@/core/musicQueue';
 import LyricParser from '@/core/lrcParser';
 import ThemeText from '@/components/base/themeText';
@@ -71,20 +71,20 @@ function useLyric() {
     }, [musicItem]);
 
     useEffect(() => {
-        if (lrcManagerRef.current) {
+        if (lrcManagerRef.current && lyric[lyric.length - 1]?.time > 1) {
             setCurentLrcItem(
                 lrcManagerRef.current.getPosition(progress.position),
             );
         }
-    }, [progress]);
+    }, [progress, lyric]);
 
     return {lyric, currentLrcItem, meta, loading} as const;
 }
 
-const ITEM_HEIGHT = rpx(72);
+const ITEM_HEIGHT = rpx(92);
 
-function Empty() {
-    return <View style={style.empty} />;
+function Empty(props: {height?: number}) {
+    return <View style={[style.empty, {paddingTop: props.height}]} />;
 }
 
 export default function Lyric() {
@@ -95,12 +95,19 @@ export default function Lyric() {
     const listRef = useRef<FlatList<ILyric.IParsedLrcItem> | null>();
     const musicState = MusicQueue.usePlaybackState();
 
+    const [layout, setLayout] = useState<LayoutRectangle>();
+    const emptyHeight = useMemo(() => {
+        const height = Math.max(layout?.height ?? vh(60), vh(60));
+        return height / 2;
+    }, [layout]);
+
     useEffect(() => {
         // 暂停且拖拽才返回
         if (
             lyric.length === 0 ||
             draggingIndex !== undefined ||
-            (draggingIndex === undefined && musicIsPaused(musicState))
+            (draggingIndex === undefined && musicIsPaused(musicState)) ||
+            lyric[lyric.length - 1].time < 1
         ) {
             return;
         }
@@ -132,7 +139,10 @@ export default function Lyric() {
     const onScroll = (e: any) => {
         if (drag) {
             setDraggingIndex(
-                Math.floor(e.nativeEvent.contentOffset.y / ITEM_HEIGHT),
+                Math.min(
+                    Math.floor(e.nativeEvent.contentOffset.y / ITEM_HEIGHT),
+                    lyric.length - 1,
+                ),
             );
         }
     };
@@ -163,12 +173,17 @@ export default function Lyric() {
                         index,
                     })}
                     ListEmptyComponent={
-                        <ThemeText style={style.highlightItem}>
-                            暂无歌词
-                        </ThemeText>
+                        <View style={{flex: 1}}>
+                            <ThemeText style={style.highlightItem}>
+                                暂无歌词
+                            </ThemeText>
+                        </View>
                     }
-                    ListHeaderComponent={Empty}
-                    ListFooterComponent={Empty}
+                    onLayout={e => {
+                        setLayout(e.nativeEvent.layout);
+                    }}
+                    ListHeaderComponent={<Empty height={emptyHeight} />}
+                    ListFooterComponent={<Empty height={emptyHeight} />}
                     onStartShouldSetResponder={() => true}
                     onStartShouldSetResponderCapture={() => true}
                     onScrollBeginDrag={onScrollBeginDrag}
@@ -193,7 +208,13 @@ export default function Lyric() {
                 />
             )}
             {draggingIndex !== undefined && (
-                <View style={style.draggingTime}>
+                <View
+                    style={[
+                        style.draggingTime,
+                        {
+                            top: emptyHeight - ITEM_HEIGHT / 2,
+                        },
+                    ]}>
                     <Text style={style.draggingTimeText}>
                         {timeformat(
                             (lyric[draggingIndex]?.time ?? 0) +
@@ -223,6 +244,7 @@ const style = StyleSheet.create({
     item: {
         fontSize: rpx(28),
         color: '#aaaaaa',
+        paddingHorizontal: rpx(64),
         width: rpx(750),
         height: ITEM_HEIGHT,
         textAlign: 'center',
@@ -232,6 +254,7 @@ const style = StyleSheet.create({
         fontSize: rpx(32),
         color: 'white',
         width: rpx(750),
+        paddingHorizontal: rpx(64),
         height: ITEM_HEIGHT,
         textAlign: 'center',
         textAlignVertical: 'center',
@@ -248,7 +271,7 @@ const style = StyleSheet.create({
         height: ITEM_HEIGHT,
         top: '40%',
         marginTop: rpx(48),
-        paddingHorizontal: rpx(28),
+        paddingHorizontal: rpx(18),
         left: 0,
         flexDirection: 'row',
         alignItems: 'center',
@@ -260,7 +283,7 @@ const style = StyleSheet.create({
         width: rpx(90),
     },
     singleLine: {
-        width: rpx(458),
+        width: rpx(500),
         height: 1,
         backgroundColor: '#cccccc',
         opacity: 0.4,

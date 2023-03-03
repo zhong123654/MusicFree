@@ -12,15 +12,18 @@ import Button from '@/components/base/button';
 import useColors from '@/hooks/useColors';
 import {BottomSheetMethods} from '@gorhom/bottom-sheet/lib/typescript/types';
 import usePanel from '../usePanel';
+import ThemeText from '@/components/base/themeText';
+import {ScrollView} from 'react-native-gesture-handler';
 
 interface ISimpleInputProps {
     onOk: (text: string, closePanel: () => void) => void;
+    hints?: string[];
     onCancel?: () => void;
     maxLength?: number;
     placeholder?: string;
 }
 export default function SimpleInput(props: ISimpleInputProps) {
-    const {onOk, onCancel, placeholder, maxLength = 80} = props;
+    const {onOk, onCancel, placeholder, maxLength = 80, hints} = props;
     const sheetRef = useRef<BottomSheetMethods | null>();
     const {unmountPanel} = usePanel();
     const [input, setInput] = useState('');
@@ -85,6 +88,20 @@ export default function SimpleInput(props: ISimpleInputProps) {
                 placeholder={placeholder ?? ''}
                 maxLength={maxLength}
             />
+            <ScrollView>
+                {hints?.length ? (
+                    <View style={style.hints}>
+                        {hints.map(_ => (
+                            <ThemeText
+                                style={style.hintLine}
+                                fontSize="subTitle"
+                                fontColor="secondary">
+                                ￮ {_}
+                            </ThemeText>
+                        ))}
+                    </View>
+                ) : null}
+            </ScrollView>
         </BottomSheet>
     );
 }
@@ -108,5 +125,12 @@ const style = StyleSheet.create({
         fontSize: fontSizeConst.content,
         lineHeight: fontSizeConst.content * 1.5,
         padding: rpx(12),
+    },
+    hints: {
+        marginTop: rpx(24),
+        paddingHorizontal: rpx(24),
+    },
+    hintLine: {
+        marginBottom: rpx(12),
     },
 });

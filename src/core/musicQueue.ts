@@ -63,6 +63,9 @@ const setup = async () => {
     /** 状态恢复 */
     try {
         const config = Config.get('status.music');
+        if (config?.rate) {
+            await TrackPlayer.setRate(+config.rate / 100);
+        }
         if (config?.repeatMode) {
             repeatMode = config.repeatMode as MusicRepeatMode;
         }
@@ -98,6 +101,7 @@ const setup = async () => {
     // 不要依赖playbackchanged，不稳定,
     // 一首歌结束了
     TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
+        trace('PlaybackQueueEnded');
         if (repeatMode === MusicRepeatMode.SINGLE) {
             await play(undefined, true);
         } else {

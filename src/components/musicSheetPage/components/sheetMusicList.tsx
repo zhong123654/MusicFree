@@ -9,11 +9,13 @@ import Config from '@/core/config';
 import MusicQueue from '@/core/musicQueue';
 
 interface IMusicListProps {
-    topListDetail: IMusic.IMusicTopListItem | null;
+    sheetInfo: IMusic.IMusicSheetItemBase | null;
     musicList?: IMusic.IMusicItem[] | null;
+    onEndReached?: () => void;
+    loadMore?: 'loading' | 'done' | 'none';
 }
-export default function TopListMusicList(props: IMusicListProps) {
-    const {topListDetail, musicList} = props;
+export default function SheetMusicList(props: IMusicListProps) {
+    const {sheetInfo: topListDetail, musicList, onEndReached, loadMore} = props;
 
     return (
         <View style={style.wrapper}>
@@ -22,6 +24,7 @@ export default function TopListMusicList(props: IMusicListProps) {
             ) : (
                 <MusicList
                     showIndex
+                    loadMore={loadMore}
                     Header={
                         <Header
                             topListDetail={topListDetail}
@@ -41,6 +44,9 @@ export default function TopListMusicList(props: IMusicListProps) {
                                 musicList ?? [musicItem],
                             );
                         }
+                    }}
+                    onEndReached={() => {
+                        onEndReached?.();
                     }}
                 />
             )}

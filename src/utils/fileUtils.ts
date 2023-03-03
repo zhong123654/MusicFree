@@ -112,3 +112,22 @@ export function addFileScheme(fileName: string) {
     }
     return fileName;
 }
+
+export function addRandomHash(url: string) {
+    if (url.indexOf('#') === -1) {
+        return `${url}#${Date.now()}`;
+    }
+    return url;
+}
+
+export function trimHash(url: string) {
+    const index = url.lastIndexOf('#');
+    if (index === -1) {
+        return url;
+    }
+    return url.substring(0, index);
+}
+
+export function escapeCharacter(str?: string) {
+    return str !== undefined ? `${str}`.replace(/\//g, '_') : '';
+}

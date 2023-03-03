@@ -55,6 +55,41 @@ export enum PluginStateCode {
     CannotParse = 'CANNOT PARSE',
 }
 
+const packages: Record<string, any> = {
+    cheerio,
+    'crypto-js': CryptoJs,
+    axios,
+    dayjs,
+    'big-integer': bigInt,
+    qs,
+    he,
+    '@react-native-cookies/cookies': CookieManager,
+};
+
+const _require = (packageName: string) => {
+    let pkg = packages[packageName];
+    pkg.default = pkg;
+    return pkg;
+};
+
+const _consoleBind = function (
+    method: 'log' | 'error' | 'info' | 'warn',
+    ...args: any
+) {
+    const fn = console[method];
+    if (fn) {
+        fn(...args);
+        devLog(method, ...args);
+    }
+};
+
+const _console = {
+    log: _consoleBind.bind(null, 'log'),
+    warn: _consoleBind.bind(null, 'warn'),
+    info: _consoleBind.bind(null, 'info'),
+    error: _consoleBind.bind(null, 'error'),
+};
+
 //#region 插件类
 export class Plugin {
     /** 插件名 */
@@ -82,34 +117,28 @@ export class Plugin {
     ) {
         this.state = 'enabled';
         let _instance: IPlugin.IPluginInstance;
+        const _module: any = {exports: {}};
         try {
             if (typeof funcCode === 'string') {
                 // eslint-disable-next-line no-new-func
                 _instance = Function(`
-            'use strict';
-            try {
-              return ${funcCode};
-            } catch(e) {
-              return null;
-            }
-          `)()({
-                    CryptoJs,
-                    axios,
-                    dayjs,
-                    cheerio,
-                    bigInt,
-                    qs,
-                    he,
-                    CookieManager: {
-                        flush: CookieManager.flush,
-                        get: CookieManager.get,
-                    },
-                });
+                    'use strict';
+                    return function(require, __musicfree_require, module, exports, console) {
+                        ${funcCode}
+                    }
+                `)()(_require, _require, _module, _module.exports, _console);
+                if (_module.exports.default) {
+                    _instance = _module.exports
+                        .default as IPlugin.IPluginInstance;
+                } else {
+                    _instance = _module.exports as IPlugin.IPluginInstance;
+                }
             } else {
                 _instance = funcCode();
             }
             this.checkValid(_instance);
         } catch (e: any) {
+            console.log(e);
             this.state = 'error';
             this.stateCode = PluginStateCode.CannotParse;
             if (e?.stateCode) {
@@ -138,7 +167,10 @@ export class Plugin {
         this.instance = _instance;
         this.path = pluginPath;
         this.name = _instance.platform;
-        if (this.instance.platform === '') {
+        if (
+            this.instance.platform === '' ||
+            this.instance.platform === undefined
+        ) {
             this.hash = '';
         } else {
             if (typeof funcCode === 'string') {
@@ -447,27 +479,46 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
     /** 获取专辑信息 */
     async getAlbumInfo(
         albumItem: IAlbum.IAlbumItemBase,
-    ): Promise<IAlbum.IAlbumItem | null> {
+        page: number = 1,
+    ): Promise<IPlugin.IAlbumInfoResult | null> {
         if (!this.plugin.instance.getAlbumInfo) {
-            return {...albumItem, musicList: []};
+            return {
+                albumItem,
+                musicList: albumItem?.musicList ?? [],
+                isEnd: true,
+            };
         }
         try {
             const result = await this.plugin.instance.getAlbumInfo(
                 resetMediaItem(albumItem, undefined, true),
+                page,
             );
             if (!result) {
                 throw new Error();
             }
             result?.musicList?.forEach(_ => {
                 resetMediaItem(_, this.plugin.name);
+                _.album = albumItem.title;
             });
 
-            return {...albumItem, ...result};
+            if (page <= 1) {
+                // 合并信息
+                return {
+                    albumItem: {...albumItem, ...(result?.albumItem ?? {})},
+                    isEnd: result.isEnd === false ? false : true,
+                    musicList: result.musicList,
+                };
+            } else {
+                return {
+                    isEnd: result.isEnd === false ? false : true,
+                    musicList: result.musicList,
+                };
+            }
         } catch (e: any) {
             trace('获取专辑信息失败', e?.message);
             devLog('error', '获取专辑信息失败', e, e?.message);
 
-            return {...albumItem, musicList: []};
+            return null;
         }
     }
 
@@ -841,6 +892,20 @@ function getSortedSearchablePlugins() {
     );
 }
 
+function getTopListsablePlugins() {
+    return plugins.filter(_ => _.state === 'enabled' && _.instance.getTopLists);
+}
+
+function getSortedTopListsablePlugins() {
+    return getTopListsablePlugins().sort((a, b) =>
+        (PluginMeta.getPluginMeta(a).order ?? Infinity) -
+            (PluginMeta.getPluginMeta(b).order ?? Infinity) <
+        0
+            ? -1
+            : 1,
+    );
+}
+
 function useSortedPlugins() {
     const _plugins = pluginStateMapper.useMappedState();
     const _pluginMetaAll = PluginMeta.usePluginMetaAll();
@@ -884,6 +949,8 @@ const PluginManager = {
     getValidPlugins,
     getSearchablePlugins,
     getSortedSearchablePlugins,
+    getTopListsablePlugins,
+    getSortedTopListsablePlugins,
     usePlugins: pluginStateMapper.useMappedState,
     useSortedPlugins,
     uninstallAllPlugins,

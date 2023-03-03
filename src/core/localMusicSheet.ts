@@ -1,4 +1,8 @@
-import {internalSerializeKey, StorageKeys} from '@/constants/commonConst';
+import {
+    internalSerializeKey,
+    StorageKeys,
+    supportLocalMediaType,
+} from '@/constants/commonConst';
 import mp3Util, {IBasicMeta} from '@/native/mp3Util';
 import {
     getInternalData,
@@ -10,6 +14,7 @@ import {getStorage, setStorage} from '@/utils/storage';
 import {nanoid} from 'nanoid';
 import {useEffect, useState} from 'react';
 import {FileStat, FileSystem} from 'react-native-file-access';
+import {unlink} from 'react-native-fs';
 
 let localSheet: IMusic.IMusicItem[] = [];
 const localSheetStateMapper = new StateMapper(() => localSheet);
@@ -85,7 +90,7 @@ export async function removeMusic(
             musicItem[internalSerializeKey]?.localPath ??
             localMusicItem[internalSerializeKey]?.localPath;
         if (deleteOriginalFile && localPath) {
-            await FileSystem.unlink(localPath);
+            await unlink(localPath);
         }
     }
     localSheet = newSheet;
@@ -100,25 +105,14 @@ function parseFilename(fn: string): Partial<IMusic.IMusicItem> | null {
     }
     return {
         id,
-        platform,
-        title,
-        artist,
+        platform: platform,
+        title: title ?? '',
+        artist: artist ?? '',
     };
 }
 
 function localMediaFilter(_: FileStat) {
-    return (
-        _.filename.endsWith('.mp3') ||
-        _.filename.endsWith('.flac') ||
-        _.filename.endsWith('.wma') ||
-        _.filename.endsWith('.wav') ||
-        _.filename.endsWith('.m4a') ||
-        _.filename.endsWith('.ogg') ||
-        _.filename.endsWith('.acc') ||
-        _.filename.endsWith('.aac') ||
-        _.filename.endsWith('.ape') ||
-        _.filename.endsWith('.m4s')
-    );
+    return supportLocalMediaType.some(ext => _.filename.endsWith(ext));
 }
 
 let importToken: string | null = null;
@@ -156,7 +150,7 @@ function cancelImportLocal() {
 }
 
 // 导入本地音乐
-const groupNum = 200;
+const groupNum = 50;
 async function importLocal(_folderPaths: string[]) {
     const folderPaths = [..._folderPaths];
     const {musicList, token} = await getMusicStats(folderPaths);
