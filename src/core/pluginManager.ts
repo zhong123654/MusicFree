@@ -44,7 +44,7 @@ import Mp3Util from '@/native/mp3Util';
 import {PluginMeta} from './pluginMeta';
 import {useEffect, useState} from 'react';
 
-axios.defaults.timeout = 1500;
+axios.defaults.timeout = 2000;
 
 const sha256 = CryptoJs.SHA256;
 
@@ -108,7 +108,7 @@ export class Plugin {
     public path: string;
     /** 插件方法 */
     public methods: PluginMethods;
-    /** 用户输入 */
+    /** TODO 用户输入 */
     public userEnv?: Record<string, string>;
 
     constructor(
@@ -397,7 +397,7 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
         if (lrcUrl) {
             try {
                 // 需要超时时间 axios timeout 但是没生效
-                rawLrc = (await axios.get(lrcUrl, {timeout: 1500})).data;
+                rawLrc = (await axios.get(lrcUrl, {timeout: 2000})).data;
                 return {
                     rawLrc,
                     lrc: lrcUrl,
@@ -435,7 +435,7 @@ class PluginMethods implements IPlugin.IPluginInstanceMethods {
             const filename = `${pathConst.lrcCachePath}${nanoid()}.lrc`;
             if (lrcUrl) {
                 try {
-                    rawLrc = (await axios.get(lrcUrl, {timeout: 1500})).data;
+                    rawLrc = (await axios.get(lrcUrl, {timeout: 2000})).data;
                 } catch {}
             }
             if (rawLrc) {

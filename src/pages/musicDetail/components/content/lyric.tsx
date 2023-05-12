@@ -14,6 +14,7 @@ import {trace} from '@/utils/log';
 import Loading from '@/components/base/loading';
 import {isSameMediaItem} from '@/utils/mediaItem';
 import PluginManager from '@/core/pluginManager';
+import globalStyle from '@/constants/globalStyle';
 
 interface ICurrentLyricItem {
     lrc?: ILyric.IParsedLrcItem;
@@ -78,7 +79,7 @@ function useLyric() {
         }
     }, [progress, lyric]);
 
-    return {lyric, currentLrcItem, meta, loading} as const;
+    return {lyric, currentLrcItem, meta, loading, progress} as const;
 }
 
 const ITEM_HEIGHT = rpx(92);
@@ -88,7 +89,7 @@ function Empty(props: {height?: number}) {
 }
 
 export default function Lyric() {
-    const {lyric, currentLrcItem, meta, loading} = useLyric();
+    const {lyric, currentLrcItem, meta, loading, progress} = useLyric();
     const [drag, setDrag] = useState(false);
     const [draggingIndex, setDraggingIndex, setDraggingIndexImmi] =
         useDelayFalsy<number | undefined>(undefined, 2000);
@@ -159,7 +160,7 @@ export default function Lyric() {
     };
 
     return (
-        <>
+        <View style={globalStyle.fwflex1}>
             {loading ? (
                 <Loading />
             ) : (
@@ -173,7 +174,7 @@ export default function Lyric() {
                         index,
                     })}
                     ListEmptyComponent={
-                        <View style={{flex: 1}}>
+                        <View style={globalStyle.flex1}>
                             <ThemeText style={style.highlightItem}>
                                 暂无歌词
                             </ThemeText>
@@ -217,8 +218,11 @@ export default function Lyric() {
                     ]}>
                     <Text style={style.draggingTimeText}>
                         {timeformat(
-                            (lyric[draggingIndex]?.time ?? 0) +
-                                (meta?.offset ?? 0),
+                            Math.min(
+                                (lyric[draggingIndex]?.time ?? 0) +
+                                    (meta?.offset ?? 0),
+                                progress.duration ?? 0,
+                            ),
                         )}
                     </Text>
                     <View style={style.singleLine} />
@@ -231,13 +235,13 @@ export default function Lyric() {
                     />
                 </View>
             )}
-        </>
+        </View>
     );
 }
 
 const style = StyleSheet.create({
     wrapper: {
-        width: rpx(750),
+        width: '100%',
         marginVertical: rpx(48),
         flex: 1,
     },
@@ -245,7 +249,7 @@ const style = StyleSheet.create({
         fontSize: rpx(28),
         color: '#aaaaaa',
         paddingHorizontal: rpx(64),
-        width: rpx(750),
+        width: '100%',
         height: ITEM_HEIGHT,
         textAlign: 'center',
         textAlignVertical: 'center',
@@ -253,7 +257,7 @@ const style = StyleSheet.create({
     highlightItem: {
         fontSize: rpx(32),
         color: 'white',
-        width: rpx(750),
+        width: '100%',
         paddingHorizontal: rpx(64),
         height: ITEM_HEIGHT,
         textAlign: 'center',
@@ -267,12 +271,12 @@ const style = StyleSheet.create({
     },
     draggingTime: {
         position: 'absolute',
-        width: rpx(750),
+        width: '100%',
         height: ITEM_HEIGHT,
         top: '40%',
         marginTop: rpx(48),
         paddingHorizontal: rpx(18),
-        left: 0,
+        right: 0,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -283,7 +287,7 @@ const style = StyleSheet.create({
         width: rpx(90),
     },
     singleLine: {
-        width: rpx(500),
+        width: '67%',
         height: 1,
         backgroundColor: '#cccccc',
         opacity: 0.4,

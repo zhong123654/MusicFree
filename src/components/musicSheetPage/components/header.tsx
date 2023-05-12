@@ -63,9 +63,10 @@ export default function Header(props: IHeaderProps) {
                     <Pressable onPress={toggleShowMore}>
                         <View
                             style={style.albumDesc}
-                            onLayout={evt => {
-                                console.log(evt.nativeEvent.layout);
-                            }}>
+                            // onLayout={evt => {
+                            //     console.log(evt.nativeEvent.layout);
+                            // }}
+                        >
                             <ThemeText
                                 fontColor="secondary"
                                 fontSize="description"
@@ -109,6 +110,7 @@ export default function Header(props: IHeaderProps) {
                     onPress={async () => {
                         showPanel('AddToMusicSheet', {
                             musicItem: musicList ?? [],
+                            newSheetDefaultName: topListDetail?.title,
                         });
                     }}
                 />
@@ -131,15 +133,15 @@ export default function Header(props: IHeaderProps) {
 
 const style = StyleSheet.create({
     wrapper: {
-        width: rpx(750),
-        paddingVertical: rpx(24),
+        width: '100%',
+        padding: rpx(24),
         justifyContent: 'center',
-        alignItems: 'center',
+        alignItems: 'flex-start',
     },
     content: {
-        width: rpx(702),
+        flex: 1,
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         alignItems: 'center',
     },
     coverImg: {
@@ -148,8 +150,9 @@ const style = StyleSheet.create({
         borderRadius: rpx(24),
     },
     details: {
-        width: rpx(456),
+        flex: 1,
         height: rpx(140),
+        paddingHorizontal: rpx(36),
         justifyContent: 'space-between',
     },
     divider: {
@@ -157,7 +160,8 @@ const style = StyleSheet.create({
     },
 
     albumDesc: {
-        width: rpx(702),
+        width: '100%',
+        paddingHorizontal: rpx(24),
     },
     /** playall */
     topWrapper: {

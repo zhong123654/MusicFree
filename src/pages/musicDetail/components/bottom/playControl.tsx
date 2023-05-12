@@ -6,15 +6,25 @@ import MusicQueue from '@/core/musicQueue';
 import repeatModeConst from '@/constants/repeatModeConst';
 import musicIsPaused from '@/utils/musicIsPaused';
 import usePanel from '@/components/panels/usePanel';
+import useOrientation from '@/hooks/useOrientation';
 
 export default function () {
     const repeatMode = MusicQueue.useRepeatMode();
     const musicState = MusicQueue.usePlaybackState();
     const {showPanel} = usePanel();
+    const orientation = useOrientation();
 
     return (
         <>
-            <View style={style.wrapper}>
+            <View
+                style={[
+                    style.wrapper,
+                    orientation === 'horizonal'
+                        ? {
+                              marginTop: 0,
+                          }
+                        : null,
+                ]}>
                 <Icon
                     color={'white'}
                     name={repeatModeConst[repeatMode].icon}
@@ -70,7 +80,7 @@ export default function () {
 
 const style = StyleSheet.create({
     wrapper: {
-        width: rpx(750),
+        width: '100%',
         marginTop: rpx(36),
         height: rpx(100),
         flexDirection: 'row',

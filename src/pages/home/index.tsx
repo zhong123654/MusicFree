@@ -1,5 +1,5 @@
 import React from 'react';
-import {StyleSheet} from 'react-native';
+import {StyleSheet, View} from 'react-native';
 
 import NavBar from './components/navBar';
 import Operations from './components/operations';
@@ -9,19 +9,38 @@ import {Divider} from 'react-native-paper';
 import {createDrawerNavigator} from '@react-navigation/drawer';
 import HomeDrawer from './components/drawer';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import rpx from '@/utils/rpx';
 import StatusBar from '@/components/base/statusBar';
+import useOrientation from '@/hooks/useOrientation';
+import HorizonalSafeAreaView from '@/components/base/horizonalSafeAreaView';
+import globalStyle from '@/constants/globalStyle';
 
 function Home() {
     return (
-        <SafeAreaView style={styles.appWrapper}>
+        <SafeAreaView edges={['top', 'bottom']} style={styles.appWrapper}>
             <StatusBar backgroundColor="transparent" />
-            <NavBar />
-            <Divider />
-            <Operations />
-            <MySheets />
+            <HorizonalSafeAreaView style={globalStyle.flex1}>
+                <>
+                    <NavBar />
+                    <Divider />
+                    <Body />
+                </>
+            </HorizonalSafeAreaView>
             <MusicBar />
         </SafeAreaView>
+    );
+}
+
+function Body() {
+    const orientation = useOrientation();
+    return (
+        <View
+            style={[
+                styles.appWrapper,
+                orientation === 'horizonal' ? styles.flexRow : null,
+            ]}>
+            <Operations orientation={orientation} />
+            <MySheets />
+        </View>
     );
 }
 
@@ -32,7 +51,7 @@ export default function App() {
             screenOptions={{
                 headerShown: false,
                 drawerStyle: {
-                    width: rpx(600),
+                    width: '80%',
                 },
             }}
             initialRouteName="HOME-MAIN"
@@ -45,6 +64,9 @@ export default function App() {
 const styles = StyleSheet.create({
     appWrapper: {
         flexDirection: 'column',
-        height: '100%',
+        flex: 1,
+    },
+    flexRow: {
+        flexDirection: 'row',
     },
 });

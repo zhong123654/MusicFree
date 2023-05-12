@@ -12,13 +12,27 @@ import ThemeText from '@/components/base/themeText';
 import deviceInfoModule from 'react-native-device-info';
 import LinkText from '@/components/base/linkText';
 import useCheckUpdate from '@/hooks/useCheckUpdate';
+import useOrientation from '@/hooks/useOrientation';
 
 export default function AboutSetting() {
     const checkAndShowResult = useCheckUpdate();
+    const orientation = useOrientation();
 
     return (
-        <View style={style.wrapper}>
-            <View style={style.header}>
+        <View
+            style={[
+                style.wrapper,
+                orientation === 'horizonal'
+                    ? {
+                          flexDirection: 'row',
+                      }
+                    : null,
+            ]}>
+            <View
+                style={[
+                    style.header,
+                    orientation === 'horizonal' ? style.horizonalSize : null,
+                ]}>
                 <TouchableOpacity
                     onPress={() => {
                         checkAndShowResult(true);
@@ -85,7 +99,7 @@ export default function AboutSetting() {
 
 const style = StyleSheet.create({
     wrapper: {
-        width: rpx(750),
+        width: '100%',
         flex: 1,
     },
     header: {
@@ -93,6 +107,10 @@ const style = StyleSheet.create({
         height: rpx(350),
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    horizonalSize: {
+        width: rpx(600),
+        height: '100%',
     },
     image: {
         width: rpx(150),

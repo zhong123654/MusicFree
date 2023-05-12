@@ -7,16 +7,19 @@ import SearchResult from './searchResult';
 import StatusBar from '@/components/base/statusBar';
 import {Appbar, Searchbar} from 'react-native-paper';
 import useColors from '@/hooks/useColors';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import {fontSizeConst} from '@/constants/uiConst';
 import {useParams} from '@/entry/router';
+import globalStyle from '@/constants/globalStyle';
+import VerticalSafeAreaView from '@/components/base/verticalSafeAreaView';
 
 function filterMusic(query: string, musicList: IMusic.IMusicItem[]) {
     if (query?.length === 0) {
         return musicList;
     }
     return musicList.filter(_ =>
-        `${_.title} ${_.artist} ${_.album} ${_.platform}`.includes(query),
+        `${_.title} ${_.artist} ${_.album} ${_.platform}`
+            .toLowerCase()
+            .includes(query.toLowerCase()),
     );
 }
 
@@ -30,11 +33,12 @@ export default function SearchMusicList() {
 
     const onChangeSearch = (_: string) => {
         setQuery(_);
+        // useTransition做优化
         setResult(filterMusic(_.trim(), musicList ?? []));
     };
 
     return (
-        <SafeAreaView style={style.wrapper}>
+        <VerticalSafeAreaView style={globalStyle.fwflex1}>
             <StatusBar />
             <Appbar.Header
                 style={[style.appbar, {backgroundColor: colors.primary}]}>
@@ -53,15 +57,11 @@ export default function SearchMusicList() {
             </Appbar.Header>
             <SearchResult result={result} />
             <MusicBar />
-        </SafeAreaView>
+        </VerticalSafeAreaView>
     );
 }
 
 const style = StyleSheet.create({
-    wrapper: {
-        width: rpx(750),
-        flex: 1,
-    },
     appbar: {
         shadowColor: 'transparent',
         backgroundColor: '#2b333eaa',
